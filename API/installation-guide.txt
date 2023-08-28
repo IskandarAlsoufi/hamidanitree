@@ -1,0 +1,215 @@
+﻿#Create the database and the schema
+dotnet ef database update
+
+
+#### Installation Guid ####
+
+﻿#This guide for configure web api in server instance of ubuntu 18.4
+#Steps and dependancies
+	#1- Create ubuntu instance
+	#2- install MySQL
+	#3- install dotnet core 3.1 SDK
+	#4- Clone project repository
+	#5- Build service
+	#6- Publish service
+	#7- Create system service
+	#8 Confiure a reverse proxy server(Nginx)
+
+
+#1- Create ubuntu instance: go to lightsail.aws.amazon and create new ubuntu version 18.4 with 1 G ram
+
+#2- Install Mysql:
+#Install the MySQL server by using the Ubuntu operating system package manager:
+#ubuntu 18.4 install 5.7 by default
+
+sudo apt-get update
+sudo apt-get install mysql-server
+
+#Note: when install mysql server you must set plugin of autontification password of root to mysql_native_password
+
+sudo mysql -u root -p
+use mysql;
+update mysql.user set plugin='mysql_native_password' where user='root';
+UPDATE mysql.user SET authentication_string = PASSWORD('LYeLVC3Q4e3aDz') WHERE User = 'root' AND Host = 'localhost';
+FLUSH PRIVILEGES;
+
+#reference=>https://support.rackspace.com/how-to/install-mysql-server-on-the-ubuntu-operating-system/
+
+#3- install dotnet core 3.1 SDK:
+	#Register Microsoft key and feed
+	#Before installing .NET, you'll need to:
+	#
+	#Register the Microsoft key.
+	#Register the product repository.
+	#Install required dependencies.
+	#This only needs to be done once per machine.
+	
+	#Open a terminal and run the following commands.
+
+	wget https://packages.microsoft.com/config/ubuntu/18.04/packages-microsoft-prod.deb -O packages-microsoft-prod.deb
+sudo dpkg -i packages-microsoft-prod.deb
+rm packages-microsoft-prod.deb
+		wget https://packages.microsoft.com/config/ubuntu/18.04/packages-microsoft-prod.deb -O packages-microsoft-prod.deb
+		sudo dpkg -i packages-microsoft-prod.deb
+
+	#Install the .NET Core SDK
+	#Update the products available for installation, then install the .NET Core SDK. In your terminal, run the following commands.
+	fllow :https://learn.microsoft.com/en-us/dotnet/core/install/linux-ubuntu
+
+		sudo add-apt-repository universe
+		sudo apt-get update
+		sudo apt-get install apt-transport-https
+		sudo apt-get update
+		sudo apt-get install dotnet-sdk-6.0
+
+#4- Clone project repository:
+#Create following directories: gamadev--Atty_service--source
+										  |--publish
+
+	sudo mkdir gamadev
+	cd gamadev
+	sudo mkdir Atty
+	cd Atty
+	sudo mkdir source
+	sudo mkdir publish
+
+	cd source
+
+### Save git pasword: git ubuntu store credentialshell by Outstanding Otter Outstanding Otter
+	
+	git config credential.helper store
+	$ git config credential.helper store
+	$ git clone https://github.com/gamadev/ABGService.git
+	Username: <type your username>
+	Password: <type your password>
+
+
+#got to github and creat POT personal access token for operation user accsses
+	git clone https://'gamadev_user'@bitbucket.org/gamadevinc/Atty.git
+
+
+#5- Build project:
+#Go to directory of web service
+
+	cd Atty
+	cd Atty.WebAPI
+	sudo dotnet build
+
+#you must run service for confirmed runing without errors
+
+	sudo dotnet run
+
+#6- Publish project
+
+	sudo dotnet publish -c Release -o /home/ubuntu/abg/publish
+
+#you must run service for confirmed runing without errors go to publish directory and execute command
+
+	sudo dotnet Atty.WebAPI.dll
+
+#7- Create system service:
+	#Create the service definition file:
+
+		sudo nano /etc/systemd/system/ecs.service
+
+	## write the following inside the file:
+
+		[Unit]
+		Description= Atty web API running on Ubuntu.
+
+		[Service]
+		WorkingDirectory=/home/ubuntu/Atty/publish/
+		ExecStart=/usr/bin/dotnet /home/ubuntu/Atty/publish/ABGService.dll
+		User=root
+		Group=root
+		Restart=on-failure
+		SyslogIdentifier=ecs-service
+		PrivateTmp=true
+
+		[Install]
+		WantedBy=multi-user.target
+
+
+
+ecsservice
+	sudo systemctl daemon-reload 
+	sudo systemctl enable abg.service
+	sudo systemctl start abg.service
+	sudo systemctl status abg.service
+
+#for show log file
+	
+	sudo journalctl -fu kestrel-abg.service
+
+#8 Confiure a reverse proxy server(Nginx)
+	-->First install nginx by executing the following commands:
+		sudo apt-get update
+		sudo apt-get install nginx
+	
+	-->Configure nginx:
+		--> create config file called 'ecs.conf' in '/etc/nginx/sites-available/' dir:
+			sudo nano /etc/nginx/sites-available/ecs.conf
+			## then write the following content:
+server {
+		listen 80;
+		listen [::]:80;
+		server_name ecs.gamadev.com *.ecs.gamadev.com;
+
+		location / {
+			include /etc/nginx/proxy_params;
+			proxy_pass http://localhost:761/;
+			proxy_http_version 1.1;
+			proxy_set_header Connection keep-alive;
+			proxy_set_header Upgrade $http_upgrade;
+			proxy_cache_bypass $http_upgrade;
+		}
+	}
+
+	-->Next, check Nginx for any syntax error with the following command:
+		sudo nginx -t
+		## If everything goes fine, you should get the following output:
+			nginx: the configuration file /etc/nginx/nginx.conf syntax is ok
+			nginx: configuration file /etc/nginx/nginx.conf test is successful
+
+	-->force Nginx to pick up the changes by running:
+		sudo nginx -s reload
+
+		
+
+
+reference=>https://docs.microsoft.com/en-us/aspnet/core/host-and-deploy/linux-nginx?view=aspnetcore-3.1
+
+#Apply below command to install missed requerement of drowing, 
+#this package to fix problem of generate thum of image in unix envernment
+
+sudo apt-get update && apt-get install -y apt-utils libgdiplus libc6-dev
+
+
+
+-- install SSL certaficate
+sudo add-apt-repository ppa:certbot/certbot
+sudo apt-get add-apt-repository
+sudo apt-get update
+sudo systemctl stop abg
+sudo apt-get install software-properties-common
+sudo add-apt-repository ppa:certbot/certbot
+sudo apt-get update
+sudo apt-get install python-certbot-nginx
+certbot -d api.abgservice.net --manual --preferred-challenges dns certonly
+apt install certbot
+sudo apt-get update
+certbot -d api.abgservice.net --manual --preferred-challenges dns certonly
+# after this command you must add txt record to your dns provider
+# then you can find your cert in /etc/letsencrypt/live/api.abgservice.net/fullchain.pem
+# and /etc/letsencrypt/live/api.abgservice.net/privkey.pem
+# then you must add this cert to nginx config file
+
+sudo openssl pkcs12 -export -out certificate.pfx -inkey privkey.pem -in fullchain.pem
+#the password is the same password in program.cs file
+
+sudo mv /etc/letsencrypt/live/api.abgservice.net/certificate.pfx /home/ubuntu/abg/publish
+
+udo systemctl stop abg
+sudo systemctl start abg
+sudo systemctl status abg
+ 
